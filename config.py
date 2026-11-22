@@ -6,253 +6,64 @@ load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-GUILD_ID = 1530923897459970119
+GUILD_ID = 1569809099351265320
 PREFIX = "!"
 
-OWNERSHIP_ROLE_ID        = 1548234142351630409
-MANAGER_ROLE_ID          = 1541410701971820554
-STAFF_ROLE_ID            = 1541410726340726795
-DEVELOPER_ROLE_ID        = 1541410706925162557
-CIVILIAN_MANAGER_ROLE_ID = 1541410696275689493
-CRIMINAL_MANAGER_ROLE_ID = 1541410696275689493
-DONATE_MANAGER_ROLE_ID   = 1541410687098560512
-FOUNDER_ROLE_ID          =  1541410680354119680
-STAFF_MANAGER_ID         = 1541410689548157028
-EVENT_MANAGER_ID = 1541410694942036029
-GENERAL_MANAGER_ID = 1541410688352653473
-APPLICATION_ACCEPTED_ROLES = {
-    "staff": 1541410727791697960  , 
-    "manager": 1541410727791697960 ,  
-}
-
-APPLICATION_REVIEW_ROLES = {
-    "elas": [1541411049318645760],
-    "ekab": [1547995025995079831],
-    "limeniko": [1541410750306717716],
-    "staff": [OWNERSHIP_ROLE_ID],
-    "manager": [OWNERSHIP_ROLE_ID],
-    "criminal": [OWNERSHIP_ROLE_ID],
-}
-
+OWNERSHIP_ROLE_ID        = 1573491553471565955
+MANAGER_ROLE_ID          = 1569809099388883004
+STAFF_ROLE_ID            = 1569809099368177791
+CRIMINAL_MANAGER_ROLE_ID = 1569809099388883002
+DONATE_MANAGER_ROLE_ID   = 1569809099393204379
+OWNER_ROLE_ID          =  1569809099393204382
+STAFF_MANAGER_ID         = 1569809099388883003
+EVENT_MANAGER_ID = 1569809099388882998
+GENERAL_MANAGER_ID = 1569809099393204376
 STAFF_TEAM_ROLE_IDS = [STAFF_ROLE_ID, MANAGER_ROLE_ID, OWNERSHIP_ROLE_ID]
 
-TICKET_SUPPORT_CHANNEL_ID = 1541410871249473576
-TICKET_SUPPORT_BANNER_URL = "https://i.imgur.com/p0ELkaj.png"
-TICKET_SUPPORT_THUMBNAIL_URL = "https://i.imgur.com/hfmJ2G9.png"
+TICKET_SUPPORT_CHANNEL_ID = 1569809101855264854
 
-CAT_TICKET_OWNERSHIP_ID = 1548237180797853706
-CAT_TICKET_SUPPORT_ID   = 1548237353083211826
-CAT_TICKET_REPORT_ID = 1548237262075203656
-CAT_TICKET_REWARD_ID = 1548237423929073735
-CAT_TICKET_REPORT_STAFF_ID = 1548237567496036372
-CAT_TICKET_REPORT_MANAGER_ID = 1548237729035194439
-CAT_TICKET_REPORT_OWNERSHIP_ID = 1548237815404306495
+# ---------- Tickets ----------
+TICKET_SUPPORT_BANNER_URL = ""   # banner του ticket panel
+TICKET_PANEL_COLOUR = 0x9500FF
+TICKET_THUMBNAIL_URL = ""   # logo μέσα στο ticket (medusa_logo)
+MAX_OPEN_TICKETS_PER_USER = 1   # πόσα ανοιχτά tickets μπορεί να έχει ο κάθε χρήστης
 
-REPORT_PANEL_BANNER_URL = "https://i.imgur.com/p0ELkaj.png"
-CAT_JOBS_ID = 1548237993293123614
-
-TICKET_JOBS_BANNER_URL = "https://i.imgur.com/p0ELkaj.png"
-TICKET_JOBS_THUMBNAIL_URL = "https://i.imgur.com/hfmJ2G9.png"
-
-
-CAT_DONATE_ID = 1548238120137261088
-
-TICKET_DONATE_BANNER_URL = "https://i.imgur.com/p0ELkaj.png"
-TICKET_DONATE_THUMBNAIL_URL = "https://i.imgur.com/hfmJ2G9.png"
-
-STAFF_PING_CHANNEL_ID = 1548238295836786768
-
-
-LOG_TICKETS_CHANNEL_ID =  1548238452544249876
-TICKET_NOTIFIER_CHANNEL_ID = 1548238452544249876
-
-SUGGESTIONS_CHANNEL_ID = 1541410881806540900
-
-
-SUPPORT_VOICE_CHANNEL_ID = 1541410840144781324
-
-SUPPORT_VOICE_NOTIFIER_CHANNEL_ID = 1548238295836786768
-SUPPORT_VOICE_PING_ROLE_ID = 1541410726340726795
-
-LOG_APPLICATIONS_CHANNEL_IDS = {
-    "elas":   1548240274315149425  , 
-    "ekab":   1548240356443816087  , 
-    "limeniko": 1548240540594741269 ,
-    "staff":   1548240606759886868 ,  
-    "manager": 1548240729128575008 ,   
-    "criminal": 1548241299495325797,
+# Category (Discord) που θα μπαίνουν τα tickets κάθε τύπου.
+# Όπου έχει 0 -> ΒΑΛΕ το ID του category. Μέχρι τότε πέφτουν στο category του "other".
+TICKET_CATEGORY_IDS = {
+    "owner":            1569809101545017354,
+    "ban_appeal":       1569809101545017357,   # TODO: βάλε category ID
+    "staff_report":     1569809101545017356,
+    "bug_report":       1569809101545017359,   # TODO: βάλε category ID
+    "other":            1569809101545017355,
+    "criminal_support": 1573837602145046681,   # TODO: βάλε category ID
 }
 
-APPLICATION_ANNOUNCE_CHANNEL_IDS = {
-    "elas": 1541410893126967397,
-    "ekab": 1541410894846763018 ,
-    "limeniko": 1541410898671837247,
-    "staff":  1541410888450310206,
+# Ποιοι ρόλοι βλέπουν τα tickets κάθε τύπου.
+TICKET_VIEW_ROLE_IDS = {
+    "owner":            [OWNERSHIP_ROLE_ID],
+    "ban_appeal":       [MANAGER_ROLE_ID, OWNERSHIP_ROLE_ID],
+    "staff_report":     [STAFF_MANAGER_ID, OWNERSHIP_ROLE_ID],
+    "bug_report":       [DEVELOPER_ROLE_ID, OWNERSHIP_ROLE_ID],
+    "other":            STAFF_TEAM_ROLE_IDS,
+    "criminal_support": [CRIMINAL_MANAGER_ROLE_ID, OWNERSHIP_ROLE_ID],
 }
 
-APPLICATION_ANNOUNCE_MENTION_CHANNEL_ID = 1548241991803080724
+STAFF_PING_CHANNEL_ID = 
 
-APPLICATION_ANNOUNCE_STAFF_MENTION_CHANNEL_ID = 1541410862106021908
+LOG_TICKETS_CHANNEL_ID =  1569809100416487632
+TICKET_NOTIFIER_CHANNEL_ID = 1573866150968819822
 
+SUGGESTIONS_CHANNEL_ID = 1569809101687357446
 
-INVITE_LOG_CHANNEL_ID = 1548242157654253678 
+SUPPORT_VOICE_CHANNEL_ID = 1569809101855264856
 
+SUPPORT_VOICE_NOTIFIER_CHANNEL_ID = 
+SUPPORT_VOICE_PING_ROLE_ID = 1569809099368177791
 
-LOG_UNTIMEOUT_CHANNEL_ID    = 1548242247030542427
+INVITE_LOG_CHANNEL_ID =  1569809100416487628
 
-APPLICATIONS_PANEL_CHANNEL_ID = 1548242470167379989
-APPLICATIONS_CATEGORY_ID      = 1548242557861888091
-APPLICATIONS_BANNER_URL = "https://i.imgur.com/p0ELkaj.png"
+LOG_GIVEAWAY_CHANNEL_ID =  1573866659200897034
+GIVEAWAY_BANNER_URL = "" 
 
-LOG_GIVEAWAY_CHANNEL_ID =  1548242645610922064
-GIVEAWAY_BANNER_URL = "https://i.imgur.com/p0ELkaj.png" 
-
-WHITELIST_CATEGORY_ID = 1548295351960731648         
-LOG_WHITELIST_CHANNEL_ID = 1548295445971861596        
-WHITELIST_ACCEPTED_ROLE_ID = 1548295537562878092
-WHITELIST_BANNER_URL = "https://i.imgur.com/p0ELkaj.png"      
-WHITELIST_LINK_URL = "https://dont.com"   
-WHITELIST_LINK_LABEL = "Join Now" 
-WHITELIST_LINK_TEXT = "Για να μπείς στο game μας θα πρέπει αναγκαστικά να είσαι μέλος του roblox group. Πάτα το κουμπί **Join Now** για να γίνεις μέλος." 
-
-WHITELIST_QUESTIONS = [
-    "Τι ηλικία έχει το roblox account σου?",
-    "Ποιο είναι το Roblox Name σου?",
-    "Εισαι μέλος του roblox group?",
-    "Γιατί θέλεις να μπεις στον server?",
-    "Έχεις διαβάσει τους κανόνες του server?",
-    "Πες μας λίγα λόγια για το backstory του χαρακτήρα σου (in game).",
-]
-
-APPLICATION_TYPES = {
-    "elas": {
-        "label": "ΕΛ.ΑΣ",
-        "questions": [
-            "Πόσο χρονών είστε;",
-            "Ποιο είναι το Roblox Name σας;",
-            "Έχετε εμπειρία σαν Αστυνομικός σε άλλη πόλη ? (Αν ναι. Σε ποια πόλη και μέχρι τι θέση)?.",
-            "Το ονοματεπώνυμο σας (RP)?.",
-            "Πόσες ώρες θα μπορείτε να διαθέτετε καθημερινά σαν Αστυνομικός?.",
-            "Γιατί θέλετε να ενταχθείτε στο σώμα της Ελληνικής Αστυνομίας?.",
-            "Έχετε ποινικό μητρώο στην ΕΛ.ΑΣ? (in game).",
-            "Πείτε μας μερικά από τα αρνητικά χαρακτηριστικά σας.",
-            "Εάν έχετε έναν αντιδραστικό πολίτη στα κελιά πως θα τον ηρεμήσετε?.",
-            "Καθώς είσαι σε περιπολία, βλέπεις δυο πολίτες να παλεύουν στο πεζοδρόμιο. Αφού τους περάσεις χειροπέδες, σου δίνουν και οι δύο την ίδια κατάθεση: πως ήταν σε άμυνα, και πως ο άλλος το άρχισε. Πώς χειρίζεσαι την κατάσταση?.",
-            "Ανάμεσα σε 2 ζωές την δικιά σας και ενός πολίτη, ποία ζωή θα έπρεπε να διασφαλιστεί πρώτη και γιατί?.",
-            "Ποιος πιστεύετε πως είναι ο ρόλος του διαπραγματευτή?.",
-            "Είστε σε σκηνικό ομηρίας ενός πολίτη και ένας ανώτερος σας σας λέει να ανοίξετε πυρ ενώ εσείς ξέρετε πως είναι λάθος και μπορεί να είναι μοιραίο. Πως θα πράξετε στην προκειμένη περίπτωση?.",
-            "Ένα βαν με φιμέ τζάμια είναι παρκαρισμένο έξω από ένα σπίτι στο οποίο επιβαίνουν 4 άτομα. Παρατηρείς ένα άτομο με full face να βγαίνει από το αμάξι και να κρατάει ένα Uzi. Σύντομα, ο ύποπτος επιστρέφει στο βαν και φεύγει με μεγάλη ταχύτητα. Πώς χειρίζεσαι την κατάσταση?.",
-            "Ποιο είναι το πρώτο όπλο ενός αστυνομικού?",
-            "Κάνεις ένα μαύρο όχημα traffic stop πες μου τις κινήσεις σου και τα λόγια σου?.",
-            "Είσαι σε ληστεία και κάνεις την διαπραγμάτευση και ο ανώτερος σου λέει να πυροβολήσεις εκείνη την στιγμή τι θα έκανες?.",
-            "Τι λέει το άρθρο 361",
-            "Έχετε να προσθέσετε κάτι άλλο"
-        ],
-    },
-    "ekab": {
-        "label": "ΕΚΑΒ",
-        "questions": [
-            "Πόσο χρονών είστε;",
-            "Ποιο είναι το Roblox Name σας;",
-            "Ποιο είναι το πραγματικό όνομα σας;",
-            "Γιατί θέλεις να μπεις στο ΕΚΑΒ",
-            "Έχεις εμπειρία από ιατρικούς ρόλους σε άλλους RP servers",
-            "Τι σε κάνει κατάλληλο άτομο για διασώστη",
-            "Πώς θα χειριζόσουν έναν τραυματία που δεν συνεργάζεται",
-            "Πώς αντιμετωπίζεις παίκτη που κάνει failRP σε ιατρική σκηνή",
-            "Πώς θα αντιδρούσες σε σοβαρό τροχαίο με πολλούς τραυματίες",
-            "Τι θεωρείς ως σωστό ιατρικό RP",
-            "Πώς θα χειριζόσουν παίκτη που σε βρίζει ενώ προσπαθείς να τον βοηθήσεις",
-            "Τι θα έκανες αν δεις συνάδελφο να κάνει λάθος ή να παραβιάζει κανόνες",
-            "Ποιος είναι ο ρόλος του ΕΚΑΒ μέσα στο RP",
-        ],
-    },
-   "limeniko":{
-       "label": "Λιμενικό Σώμα",
-       "questions": [
-            "Πόσο χρονών είσαι;",
-            "Πως σε λένε στο roblox;",
-            {"type": "yesno", "text": "Ξέρεις ότι θα πρέπει να γράψεις την αίτηση σου στα ελληνικά και όχι greeklish αλλιώς θα απορριφθεί;"},
-            {"type": "yesno", "text": "Ξέρεις ότι άμα στείλεις κάποιο προσωπικό μήνυμα σε κάποιον ανώτερο θα απορριφθεί κατευθείαν η αίτηση σου"},
-            "Γιατί θέλεις να υπηρετήσεις στο λιμενικό;",
-            "Ποια θεωρείς ότι είναι τα σημαντικότερα χαρακτηριστικά ενός καλού άτομου στο λιμενικό;",
-            "Πώς αντιμετωπίζεις καταστάσεις πίεσης ή άγχους;",
-            "Έχεις συμμετάσχει ποτέ σε δραστηριότητες που απαιτούσαν ομαδική συνεργασία; Δώσε ένα παράδειγμα.",
-            "Πώς θα αντιδρούσες αν λάμβανες μια δύσκολη διαταγή με την οποία δεν συμφωνούσες προσωπικά;",
-            "Ποια είναι τα δυνατά σου σημεία και ποια θεωρείς ότι χρειάζονται βελτίωση;",
-            "Πώς διατηρείς τη φυσική σου κατάσταση και πόσο σημαντική πιστεύεις ότι είναι η σωματική άσκηση για ένα άτομο στο λιμενικό;",
-            "Πώς θα διαχειριζόσουν μια κατάσταση όπου θα έπρεπε να πάρεις γρήγορα μια κρίσιμη απόφαση;",
-            "Τι γνωρίζεις για τις υποχρεώσεις και τις απαιτήσεις της λιμενικής ζωής;"
-        ],
-   },
-    "staff": {
-        "label": "Staff",
-        "questions": [
-            "Πόσο χρονών είσαι;",
-            "Πως σε λένε στο Roblox;",
-            {"type": "yesno", "text": "Ξέρεις ότι θα πρέπει να γράψεις την αίτηση σου στα ελληνικά και όχι greeklish αλλιώς θα απορριφθεί;"},
-            {"type": "yesno", "text": "Ξέρεις ότι άμα στείλεις κάποιο προσωπικό μήνυμα σε κάποιον ανώτερο θα απορριφθεί κατευθείαν η αίτηση σου"},
-            "Πόσες ώρες θα μπορείς να είσαι on duty;",
-            "Είστε διατεθειμένος/η να μειώσετε ώρες από το rp σας για της ανάγκες του staff™;",
-            "Έχετε τυχών γνώσεις στα staff commands;",
-            "Έχετε ξανά δουλέψει σαν staff; Και αν ναι σε ποιους servers;",
-            "Τι σημαίνει ιεραρχία;",
-            "Αν κάποιος κάνει livestream και κάνει report ποιος θα πάει;",
-            "Ένας φίλος σου παραβιάζει κανόνα ενώ είσαι Staff. Πώς ενεργείς;",
-            "Ένας παίκτης σε βρίζει επειδή του έδωσες punishment. Τι κάνεις;",
-            "Βλέπεις άλλο Staff να κάνει abuse των permissions του. Πώς το χειρίζεσαι;",
-            "Ένας παίκτης έχει δίκιο, αλλά είναι γνωστός σου. Θα αλλάξεις την απόφασή σου;",
-            "Ένας παίκτης κάνει report εναντίον σου. Ποιος πρέπει να χειριστεί το report;",
-            "Τι θεωρείς Staff Abuse;",
-            "Πότε δικαιολογείται Warn, Kick, Temp Ban και Permanent Ban;",
-            "Ένας παίκτης παραβιάζει κανόνα αλλά δεν έχεις αρκετά evidence. Τι κάνεις;",
-            "Αν ένας ανώτερος Staff σου ζητήσει να τιμωρήσεις κάποιον χωρίς evidence, τι κάνεις;",
-            "Τι σημαίνει professionalism για έναν Staff;",
-        ],
-    },
-    "manager": {
-        "label": "Manager",
-        "questions": [
-            "Πόσο χρονών είστε;",
-            "Ποιο είναι το Roblox Name σας;",
-            {"type": "yesno", "text": "Ξέρεις ότι θα πρέπει να γράψεις την αίτηση σου στα ελληνικά και όχι greeklish αλλιώς θα απορριφθεί;"},
-            {"type": "yesno", "text": "Ξέρεις ότι άμα στείλεις κάποιο προσωπικό μήνυμα σε κάποιον ανώτερο θα απορριφθεί κατευθείαν η αίτηση σου"},
-            "Ένα πράγμα που θα άλλαζες στη δομή του server & γιατί",
-            "Πώς αξιολογείς αν ένας staff αξίζει προαγωγή;",
-            "Πρέπει να υποβιβάσεις φίλο σου — θα το κάνεις; Πώς;",
-            "Server χάνει active players — διαδικασία διάγνωσης;",
-            "Disagreement με owner πάνω σε απόφασή του — πώς το χειρίζεσαι;",
-            "Πώς θα έφτιαχνες staff team από την αρχή αν το τωρινό διαλυόταν εντελώς; Ποια κριτήρια θα κοιτούσες πρώτα;",
-            "Ανακαλύπτεις ότι ένας staff πουλάει in-game πλεονεκτήματα για πραγματικά χρήματα εκτός συστήματος του server. Ποια είναι η ακριβής διαδικασία σου βήμα-βήμα;",
-            "Πού βλέπεις το server σε 6 μήνες αν γίνεις manager, με συγκεκριμένα, μετρήσιμα ορόσημα;",
-            "Ποιο θα ήταν το πρώτο πράγμα που θα έκανες τις πρώτες 48 ώρες στη θέση;",
-            "Δύο staff κατηγορούν ο ένας τον άλλον για κλοπή δεδομένων. Πώς το διερευνάς χωρίς να πάρεις προκατειλημμένη θέση;",
-            "Πόσες ώρες θα μπορείς να είσαι on;"
-        ],
-    },
-    "criminal": {
-        "label": "Criminal",
-        "questions": [
-            "Για ποιο Criminal Team ενδιαφέρεστε?",
-            "Τι ηλικίες υπάρχουν στην ομάδα σας? [Boss 16+ αυστηρά]",
-            "Πόσα μέλη είστε και πόσο καιρό παίζετε criminal ? [Minimum 10 για Mafia/Cartel & minimum 8 για Gang]",
-            "Απο ποιόν Server έρχεστε, πόσο καιρό παίζατε και γιατί φύγατε?",
-            "Τι σας έκανε να επιλέξετε τον Server μας, ώστε να παίξετε Criminal RP?",
-            "Είχατε ποτέ ξανά Criminal Team στον Server μας? Αν ναι γιατι το αφήσατε?",
-            "Πόσο ενεργοί θεωρείτε μπορείτε να είστε εφόσον πάρετε την ομάδα?",
-            "Είναι σίγουρο πως θα παίζετε με το Job?",
-            "Θέλετε να συμπληρώσετε κάτι?",
-        ],
-    },
-}
-
-CRIMINAL_APPLICATIONS_BANNER_URL = "https://i.imgur.com/p0ELkaj.png"
-
-EMBED_COLOR = int(os.getenv("EMBED_COLOR", "fd941c"), 16)
-
-REVIEWS_PANEL_CHANNEL_ID = 1548242843766620180
-REVIEWS_LOG_CHANNEL_ID = 1548242956396400731  
-REVIEWS_BANNER_URL = "https://i.imgur.com/p0ELkaj.png" 
-
-STAFF_COMPLIMENTS_CHANNEL_ID = 1541410885002854512
-STAFF_COMPLIMENTS_LOG_CHANNEL_ID = 1541410885002854512
+EMBED_COLOR = int(os.getenv("EMBED_COLOR", "A600FF"), 16)
