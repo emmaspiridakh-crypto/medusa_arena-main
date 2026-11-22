@@ -23,6 +23,7 @@ class SupportVoice(commands.Cog):
         self.bot = bot
         self._cooldowns: dict[int, float] = {}   # user_id -> monotonic time του τελευταίου ανοίγματος
         self._creating: set[int] = set()         # χρήστες που αυτή τη στιγμή τους φτιάχνεται voice
+        self._temp_ids: set[int] = set()         # temp voices στη μνήμη (δουλεύει και αν αποτύχει το storage)
         self._swept = False
 
     # ---------- helpers ----------
@@ -72,11 +73,31 @@ class SupportVoice(commands.Cog):
         for uid in [u for u, t in self._cooldowns.items() if now - t > config.TEMP_VOICE_COOLDOWN_SECONDS]:
             self._cooldowns.pop(uid, None)
 
-    @staticmethod
-    def _forget(channel_id: int):
-        store = storage.get_store(STORE_NAME)
-        if store.pop(str(channel_id), None) is not None:
+    def _register(self, channel_id: int, record: dict):
+        self._temp_ids.add(channel_id)
+        try:
+            store = storage.get_store(STORE_NAME)
+            store[str(channel_id)] = record
             storage.save(STORE_NAME, store)
+        except Exception:
+            log.exception("[support_voice] Αποτυχία αποθήκευσης temp voice (συνεχίζω με μνήμη)")
+
+    def _is_temp(self, channel_id: int) -> bool:
+        if channel_id in self._temp_ids:
+            return True
+        try:
+            return str(channel_id) in storage.get_store(STORE_NAME)
+        except Exception:
+            return False
+
+    def _forget(self, channel_id: int):
+        self._temp_ids.discard(channel_id)
+        try:
+            store = storage.get_store(STORE_NAME)
+            if store.pop(str(channel_id), None) is not None:
+                storage.save(STORE_NAME, store)
+        except Exception:
+            log.exception("[support_voice] Αποτυχία διαγραφής από storage")
 
     async def _delete_temp(self, channel: discord.VoiceChannel, reason: str = "Temp voice άδειασε"):
         try:
@@ -118,9 +139,7 @@ class SupportVoice(commands.Cog):
 
             overwrites: dict = {
                 guild.default_role: discord.PermissionOverwrite(view_channel=False, connect=False),
-                guild.me: discord.PermissionOverwrite(
-                    view_channel=True, connect=True, manage_channels=True, move_members=True
-                ),
+                guild.me: discord.PermissionOverwrite(view_channel=True, connect=True),
                 member: discord.PermissionOverwrite(view_channel=True, connect=True, speak=True),
             }
             role_ids = {config.OWNERSHIP_ROLE_ID}
@@ -130,7 +149,7 @@ class SupportVoice(commands.Cog):
                 role = guild.get_role(rid)
                 if role:
                     overwrites[role] = discord.PermissionOverwrite(
-                        view_channel=True, connect=True, speak=True, move_members=True
+                        view_channel=True, connect=True, speak=True
                     )
 
             category = guild.get_channel(data.get("category_id") or 0)
@@ -145,16 +164,25 @@ class SupportVoice(commands.Cog):
                     name=name, category=category, overwrites=overwrites,
                     reason=f"Temp voice ({key}) για {member}",
                 )
+            except discord.Forbidden as e:
+                log.error(
+                    f"[support_voice] ({key}) Forbidden στη δημιουργία voice: {e}. "
+                    f"Το bot χρειάζεται Manage Channels, Manage Roles (Permissions), Move Members και "
+                    f"Connect/View Channel στο category ID={category.id if category else None}."
+                )
+                return
             except discord.HTTPException as e:
-                log.error(f"[support_voice] Αποτυχία δημιουργίας voice για {member}: {e}")
+                log.error(f"[support_voice] ({key}) Αποτυχία δημιουργίας voice για {member}: {e}")
                 return
 
-            store = storage.get_store(STORE_NAME)
-            store[str(voice.id)] = {"type": key, "owner_id": member.id, "guild_id": guild.id}
-            storage.save(STORE_NAME, store)
+            self._register(voice.id, {"type": key, "owner_id": member.id, "guild_id": guild.id})
 
             try:
                 await member.move_to(voice, reason="Temp voice")
+            except discord.Forbidden as e:
+                log.error(f"[support_voice] ({key}) Forbidden στο move_to: {e}. Λείπει το Move Members.")
+                await self._delete_temp(voice, reason="Αποτυχία μετακίνησης")
+                return
             except discord.HTTPException as e:
                 # ο χρήστης έφυγε από το hub πριν προλάβουμε να τον μετακινήσουμε
                 log.info(f"[support_voice] Δεν μετακινήθηκε ο {member}: {e}")
@@ -187,15 +215,26 @@ class SupportVoice(commands.Cog):
     # ---------- listeners ----------
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        try:
+            await self._on_voice_state_update(member, before, after)
+        except Exception:
+            log.exception(f"[support_voice] Απρόσμενο σφάλμα για {member}")
+
+    async def _on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         if member.bot:
             return
         if before.channel == after.channel:   # mute/deafen κλπ
             return
 
+        if after.channel:
+            log.info(
+                f"[support_voice] {member} μπήκε σε voice {after.channel.name} "
+                f"(ID={after.channel.id}) - hub? {after.channel.id in self._hubs()}"
+            )
+
         # 1) Διαγραφή temp voice όταν αδειάσει
         if before.channel:
-            store = storage.get_store(STORE_NAME)
-            if str(before.channel.id) in store and not before.channel.members:
+            if self._is_temp(before.channel.id) and not before.channel.members:
                 await self._delete_temp(before.channel)
 
         # 2) Μπήκε σε hub -> δημιουργία temp voice + notify
@@ -211,7 +250,43 @@ class SupportVoice(commands.Cog):
         if self._swept:
             return
         self._swept = True
-        store = storage.get_store(STORE_NAME)
+
+        # Διαγνωστικά config
+        seen: dict[int, str] = {}
+        for key, data in config.TEMP_VOICE_TYPES.items():
+            hub_id = data.get("hub_channel_id")
+            if not hub_id:
+                log.warning(f"[support_voice] ({key}) απενεργοποιημένο: hub_channel_id=0")
+                continue
+            if hub_id in seen:
+                log.error(
+                    f"[support_voice] ΛΑΘΟΣ CONFIG: οι τύποι '{seen[hub_id]}' και '{key}' έχουν το ίδιο "
+                    f"hub_channel_id={hub_id}. Μόνο ο ένας θα δουλεύει - βάλε διαφορετικό hub σε κάθε τύπο."
+                )
+            seen[hub_id] = key
+            hub = self.bot.get_channel(hub_id)
+            if hub is None:
+                log.error(f"[support_voice] ({key}) Δεν βρέθηκε hub channel ID={hub_id} (λάθος ID ή το bot δεν το βλέπει).")
+            elif not isinstance(hub, discord.VoiceChannel):
+                log.error(f"[support_voice] ({key}) Το ID={hub_id} είναι {type(hub).__name__}, όχι VoiceChannel.")
+            else:
+                perms = hub.guild.me.guild_permissions
+                missing = [
+                    n for n in ("manage_channels", "manage_roles", "move_members")
+                    if not getattr(perms, n)
+                ]
+                if missing and not perms.administrator:
+                    log.error(f"[support_voice] ({key}) Λείπουν δικαιώματα από το bot: {', '.join(missing)}")
+                else:
+                    log.info(f"[support_voice] ({key}) OK: hub=#{hub.name} ({hub_id})")
+            if not self.bot.get_channel(data.get("notify_channel_id") or 0):
+                log.error(f"[support_voice] ({key}) Δεν βρέθηκε notify channel ID={data.get('notify_channel_id')}.")
+        try:
+            store = storage.get_store(STORE_NAME)
+        except Exception:
+            log.exception("[support_voice] Αποτυχία ανάγνωσης storage στο sweep")
+            return
+        self._temp_ids.update(int(k) for k in store.keys())
         for ch_id in list(store.keys()):
             channel = self.bot.get_channel(int(ch_id))
             if channel is None:
