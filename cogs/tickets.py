@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import io
-import datetime as dt
+import asyncio
 
 import discord
 from discord import ui, app_commands
@@ -11,73 +10,114 @@ import config
 from emojis import emoji
 from utils import storage
 from utils.permissions import has_roles
-from utils.components import build_base_container, add_action_row, add_separator, add_text
+from utils.components import build_base_container, add_action_row, add_separator
 
 STORE_NAME = "tickets"
 TRANSCRIPT_STORE = "ticket_transcripts"
 
-def _ticket_types() -> dict:
+PANEL_SELECT_ID = "ticket_select"
+
+# ---------- Emojis του panel (hardcoded) ----------
+E_TITLE = "<:name:1571835494172467282>"
+E_INTRO = "<a:name:1572715696453058570>"
+E_BULLET = "<:name:1573453240052486277>"
+E_FOOTER = "<a:name:1573739983515418649>"
+
+# ---------- Τύποι ticket ----------
+# Category IDs και ρόλοι που βλέπουν τα tickets ορίζονται στο config.py
+# (TICKET_CATEGORY_IDS / TICKET_VIEW_ROLE_IDS) με το ίδιο key.
+TICKET_TYPES: dict[str, dict] = {
+    "owner": {
+        "label": "Owner",
+        "emoji": "<:name:1573454146017824779>",
+        "description": "Επικοινωνία με το Ownership",
+    },
+    "ban_appeal": {
+        "label": "Ban Appeal",
+        "emoji": "<:name:1573464177719115956>",
+        "description": "Ανάκληση για κάποιο ban",
+    },
+    "staff_report": {
+        "label": "Staff Report",
+        "emoji": "<:name:1573457240701276180>",
+        "description": "Αναφορά Staff",
+    },
+    "bug_report": {
+        "label": "Bug Report",
+        "emoji": "<:name:1573464800279924756>",
+        "description": "Αναφορά κάποιου Bug",
+    },
+    "other": {
+        "label": "Other",
+        "emoji": "<:name:1572696314871943338>",
+        "description": "Γενικό Support/Ερωτήσεις",
+    },
+    "criminal_support": {
+        "label": "Criminal Support",
+        "emoji": "<:name:1573837895838601336>",
+        "description": "Support/Ερωτήσεις για criminals",
+    },
+}
+
+
+def _ticket_types() -> dict[str, dict]:
     return {
-        "ownership": {
-            "label": "Ownership",
-            "emoji": emoji("tickets", "ownership"),
-            "category_id": config.CAT_TICKET_OWNERSHIP_ID,
-            "view_roles": [config.OWNERSHIP_ROLE_ID],
-        },
-        "support": {
-            "label": "Support",
-            "emoji": emoji("tickets", "support"),
-            "category_id": config.CAT_TICKET_SUPPORT_ID,
-            "view_roles": config.STAFF_TEAM_ROLE_IDS,
-        },
-        "report": {
-            "label": "Report",
-            "emoji": emoji("tickets", "report"),
-            "category_id": config.CAT_TICKET_REPORT_ID,
-            "view_roles": [config.OWNERSHIP_ROLE_ID],
-        },
-        "reward": {
-            "label": "Claim Your Reward",
-            "emoji": emoji("tickets", "reward"),
-            "category_id": config.CAT_TICKET_REWARD_ID,
-            "view_roles": [config.EVENT_MANAGER_ID],
-        },
-        "report_staff": {
-            "label": "Report Staff",
-            "emoji": emoji("tickets", "report_staff"),
-            "category_id": config.CAT_TICKET_REPORT_STAFF_ID,
-            "view_roles": [config.STAFF_MANAGER_ID, config.OWNERSHIP_ROLE_ID],
-        },
-        "report_manager": {
-            "label": "Report Manager",
-            "emoji": emoji("tickets", "report_manager"),
-            "category_id": config.CAT_TICKET_REPORT_MANAGER_ID,
-            "view_roles": [config.OWNERSHIP_ROLE_ID],
-        },
-        "report_ownership": {
-            "label": "Report Ownership",
-            "emoji": emoji("tickets", "report_ownership"),
-            "category_id": config.CAT_TICKET_REPORT_OWNERSHIP_ID,
-            "view_roles": [config.FOUNDER_ROLE_ID],
-        },
-        "civilian_job": {
-            "label": "Civilian Job",
-            "emoji": emoji("jobs", "civilian"),
-            "category_id": config.CAT_JOBS_ID,
-            "view_roles": [config.CIVILIAN_MANAGER_ROLE_ID],
-        },
-        "donate": {
-            "label": "Donate",
-            "emoji": emoji("donate", "donate"),
-            "category_id": config.CAT_DONATE_ID,
-            "view_roles": [config.OWNERSHIP_ROLE_ID, config.DONATE_MANAGER_ROLE_ID],
-        },
+        key: {
+            **data,
+            "category_id": config.TICKET_CATEGORY_IDS.get(key, 0),
+            "view_roles": config.TICKET_VIEW_ROLE_IDS.get(key, []),
+        }
+        for key, data in TICKET_TYPES.items()
     }
 
 
-def _add_info_lines(container, lines: list[str]) -> None:
-    bullet = emoji("tickets", "bullet") or "»"
-    add_text(container, "\n\n".join(f"{bullet} {line}" for line in lines))
+def _sep() -> ui.Separator:
+    return ui.Separator(visible=True, spacing=discord.SeparatorSpacing.small)
+
+
+def build_panel_view() -> ui.LayoutView:
+    children: list = [
+        _sep(),
+        ui.MediaGallery(discord.MediaGalleryItem(media=config.TICKET_SUPPORT_BANNER_URL)),
+        _sep(),
+        ui.TextDisplay(f"## {E_TITLE} 〃 **__Medusa Arena - Ticket Center__**"),
+        _sep(),
+        ui.TextDisplay(
+            f"{E_INTRO} Για την άμεση εξυπηρέτηση σας, επιλέξτε την κατηγορία που σας ενδιαφέρει "
+            "και ανοίξτε ένα ticket ώστε επικοινωνήσετε μαζί μας."
+        ),
+        _sep(),
+    ]
+    for data in TICKET_TYPES.values():
+        children.append(
+            ui.TextDisplay(
+                f"> **{E_BULLET}** {data['emoji']} 〃 **{data['label']}** — {data['description']}"
+            )
+        )
+        children.append(_sep())
+
+    select = ui.Select(
+        custom_id=PANEL_SELECT_ID,
+        placeholder="〃 Make A Selection",
+        options=[
+            discord.SelectOption(
+                label=data["label"],
+                value=key,
+                emoji=discord.PartialEmoji.from_str(data["emoji"]),
+            )
+            for key, data in TICKET_TYPES.items()
+        ],
+    )
+    children.append(ui.ActionRow(select))
+    children.append(_sep())
+    children.append(
+        ui.TextDisplay(f"-# {E_FOOTER} 〃 **__Παρακαλούμε μην ανοίγετε ticket χωρίς λόγο__**")
+    )
+    children.append(_sep())
+
+    view = ui.LayoutView(timeout=None)
+    view.add_item(ui.Container(*children, accent_colour=config.TICKET_PANEL_COLOUR))
+    return view
 
 
 def _safe_name(text: str) -> str:
@@ -88,32 +128,61 @@ def _safe_name(text: str) -> str:
 class Tickets(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self._opening: set[int] = set()   # χρήστες που αυτή τη στιγμή ανοίγουν ticket (anti double-click)
 
     async def create_ticket(self, interaction: discord.Interaction, ticket_key: str):
-        ttypes = _ticket_types()
-        data = ttypes.get(ticket_key)
+        # Reset του select menu (να μην μένει η επιλογή και να ξαναπατιέται η ίδια κατηγορία)
+        try:
+            await interaction.response.edit_message(view=build_panel_view())
+        except discord.HTTPException:
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
+
+        async def reply(text: str):
+            await interaction.followup.send(text, ephemeral=True)
+
+        data = _ticket_types().get(ticket_key)
         if not data:
-            await interaction.response.send_message("Άγνωστος τύπος ticket.", ephemeral=True)
+            await reply("Άγνωστος τύπος ticket.")
             return
 
         guild = interaction.guild
         opener = interaction.user
 
-        store = storage.get_store(STORE_NAME)
-        for ch_id, info in store.items():
-            if info.get("opener_id") == opener.id and info.get("type") == ticket_key:
-                channel = guild.get_channel(int(ch_id))
-                if channel:
-                    await interaction.response.send_message(
-                        f"Έχεις ήδη ανοιχτό ticket: {channel.mention}", ephemeral=True
-                    )
-                    return
+        if opener.id in self._opening:
+            await reply("Το ticket σου ανοίγει ήδη, περίμενε λίγο.")
+            return
 
-        category = guild.get_channel(data["category_id"])
-        if category is None:
-            await interaction.response.send_message(
-                "Δεν βρέθηκε το category.", ephemeral=True
+        self._opening.add(opener.id)
+        try:
+            await self._open_ticket(interaction, guild, opener, ticket_key, data, reply)
+        finally:
+            self._opening.discard(opener.id)
+
+    async def _open_ticket(self, interaction, guild, opener, ticket_key, data, reply):
+        store = storage.get_store(STORE_NAME)
+
+        # Όριο ανοιχτών tickets ανά χρήστη (όλοι οι τύποι μαζί)
+        open_channels = []
+        for ch_id, info in store.items():
+            if info.get("opener_id") != opener.id:
+                continue
+            channel = guild.get_channel(int(ch_id))
+            if channel:
+                open_channels.append(channel)
+        if len(open_channels) >= config.MAX_OPEN_TICKETS_PER_USER:
+            await reply(
+                f"Έχεις ήδη ανοιχτό ticket: {open_channels[0].mention}\n"
+                f"Μπορείς να έχεις μόνο {config.MAX_OPEN_TICKETS_PER_USER} ticket τη φορά."
             )
+            return
+
+        # Category (αν δεν έχει οριστεί/βρεθεί, πέφτει στο category του "other")
+        category = guild.get_channel(data["category_id"]) if data["category_id"] else None
+        if not isinstance(category, discord.CategoryChannel):
+            category = guild.get_channel(config.TICKET_CATEGORY_IDS.get("other", 0))
+        if not isinstance(category, discord.CategoryChannel):
+            await reply("Δεν βρέθηκε το category.")
             return
 
         overwrites = {
@@ -126,10 +195,14 @@ class Tickets(commands.Cog):
             if role:
                 overwrites[role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
 
-        channel_name = f"{ticket_key}-{_safe_name(opener.display_name)}"
-        new_channel = await guild.create_text_channel(
-            name=channel_name, category=category, overwrites=overwrites
-        )
+        channel_name = f"{ticket_key.replace('_', '-')}-{_safe_name(opener.display_name)}"
+        try:
+            new_channel = await guild.create_text_channel(
+                name=channel_name, category=category, overwrites=overwrites
+            )
+        except discord.HTTPException:
+            await reply("Δεν μπόρεσε να δημιουργηθεί το ticket. Δοκίμασε ξανά ή ενημέρωσε το staff.")
+            return
 
         store[str(new_channel.id)] = {
             "type": ticket_key,
@@ -170,7 +243,7 @@ class Tickets(commands.Cog):
             embed.add_field(name="Άνοιξε από", value=f"{opener.mention} (`{opener.id}`)", inline=False)
             await log_channel.send(embed=embed)
 
-        await interaction.response.send_message(f"Το ticket σου: {new_channel.mention}", ephemeral=True)
+        await reply(f"Το ticket σου: {new_channel.mention}")
 
     async def _build_transcript_text(self, channel: discord.TextChannel) -> str:
         lines = []
@@ -251,7 +324,7 @@ class Tickets(commands.Cog):
 
         store.pop(str(channel_id), None)
         storage.save(STORE_NAME, store)
-        await discord.utils.sleep_until(discord.utils.utcnow() + __import__("datetime").timedelta(seconds=5))
+        await asyncio.sleep(5)
         channel = interaction.guild.get_channel(channel_id)
         if channel:
             await channel.delete(reason=f"Ticket closed by {interaction.user}")
@@ -313,21 +386,9 @@ class Tickets(commands.Cog):
             return
         custom_id = interaction.data.get("custom_id", "")
 
-        if custom_id == "support_ticket_select":
+        if custom_id == PANEL_SELECT_ID:
             value = interaction.data["values"][0]
             await self.create_ticket(interaction, value)
-        elif custom_id == "ticket_open_civilian_job":
-            await self.create_ticket(interaction, "civilian_job")
-        elif custom_id == "ticket_open_report_staff":
-            await self.create_ticket(interaction, "report_staff")
-        elif custom_id == "ticket_open_report_manager":
-            await self.create_ticket(interaction, "report_manager")
-        elif custom_id == "ticket_open_report_ownership":
-            await self.create_ticket(interaction, "report_ownership")
-        elif custom_id == "ticket_open_criminal_job":
-            await self.create_ticket(interaction, "criminal_job")
-        elif custom_id == "ticket_open_donate":
-            await self.create_ticket(interaction, "donate")
         elif custom_id.startswith("ticket_close:"):
             channel_id = int(custom_id.split(":")[1])
             await self.handle_close(interaction, channel_id)
@@ -338,168 +399,12 @@ class Tickets(commands.Cog):
             channel_id = int(custom_id.split(":")[1])
             await self.handle_view_transcript(interaction, channel_id)
 
-    @app_commands.command(name="panel-support", description="Στέλνει το Support ticket panel")
+    @app_commands.command(name="panel-support", description="Στέλνει το Ticket Center panel")
     @app_commands.checks.has_any_role(config.OWNERSHIP_ROLE_ID, config.MANAGER_ROLE_ID, config.STAFF_ROLE_ID)
     async def panel_support(self, interaction: discord.Interaction):
-        ttypes = _ticket_types()
-        container = build_base_container(
-            title=f"{emoji('tickets', 'ticket')} Max Roleplay Ticket",
-            banner_url=config.TICKET_SUPPORT_BANNER_URL,
-        )
-        add_separator(container)
-        _add_info_lines(container, [
-            "Για οποιοδήποτε θέμα, απορία ή πρόβλημα αντιμετωπίζετε στον server, μπορείτε να ανοίξετε ένα ticket και ένα μέλος του staff team θα σας εξυπηρετήσει το συντομότερο δυνατό.",
-            "**Tip: Περιγράψτε με σαφήνεια το πρόβλημά σας, παρέχετε screenshots ή άλλα απαραίτητα στοιχεία, εφόσον υπάρχουν, μην κάνετε spam ή ανοίγετε πολλαπλά tickets για το ίδιο θέμα.**",
-            
-        "Ευχαριστούμε για την κατανόηση σας. Παρακαλούμε μην κάνετε spam ping.",
-        ])
-        add_separator(container)
-        _descriptions = {
-            "ownership": "Επικοινωνία αποκλειστικά με το Ownership",
-            "support": "Γενική υποστήριξη & ερωτήσεις",
-            "report": "Κάνε report για κάποιο συμβάν/παίχτη",
-            "reward": "Διεκδίκησε το reward σου",
-        }
-        options = [
-            discord.SelectOption(
-                label=ttypes[k]["label"],
-                value=k,
-                emoji=ttypes[k]["emoji"] or None,
-                description=_descriptions.get(k, ""),
-            )
-            for k in ("ownership", "support", "report", "reward")
-        ]
-        select = ui.Select(placeholder="Επίλεξε κατηγορία...", options=options, custom_id="support_ticket_select")
-        add_action_row(container, select)
-
-        view = ui.LayoutView(timeout=None)
-        view.add_item(container)
-        await interaction.channel.send(view=view)
+        await interaction.channel.send(view=build_panel_view())
         await interaction.response.send_message("Στάλθηκε.", ephemeral=True)
 
-    @app_commands.command(name="panel-jobs", description="Στέλνει το Civilian Job panel (ένα panel, δύο κουμπιά)")
-    @app_commands.checks.has_any_role(config.OWNERSHIP_ROLE_ID, config.MANAGER_ROLE_ID)
-    async def panel_jobs(self, interaction: discord.Interaction):
-        ttypes = _ticket_types()
-        civ = ttypes["civilian_job"]
-
-        container = build_base_container(
-            title=f"{emoji('tickets', 'ticket')} Max Roleplay - Civilian Ticket",
-            banner_url=config.TICKET_JOBS_BANNER_URL,
-            thumbnail_url=config.TICKET_JOBS_THUMBNAIL_URL,
-        )
-        add_separator(container)
-        _add_info_lines(container, [
-            "**Πάτησε το κουμπί για το job που θες, και επικοινώνησε με τον αρμόδιο Manager για να το αποκτήσεις.**",
-            "*Μπορείτε να ανοίξετε έως ένα ticket την φορά.*",
-        ])
-        add_separator(container)
-        civ_btn = ui.Button(
-            label=civ["label"], style=discord.ButtonStyle.secondary,
-            emoji=civ["emoji"] or None, custom_id="ticket_open_civilian_job",
-        )
-        add_action_row(container, civ_btn)
-
-        view = ui.LayoutView(timeout=None)
-        view.add_item(container)
-        await interaction.channel.send(view=view)
-        await interaction.response.send_message("Στάλθηκε.", ephemeral=True)
-
-    @app_commands.command(name="panel-report", description="Στέλνει το Report panel")
-    @app_commands.checks.has_any_role(config.OWNERSHIP_ROLE_ID, config.MANAGER_ROLE_ID, config.STAFF_ROLE_ID)
-    async def panel_report(self, interaction: discord.Interaction):
-        ttypes = _ticket_types()
-        staff_t = ttypes["report_staff"]
-        manager_t = ttypes["report_manager"]
-        ownership_t = ttypes["report_ownership"]
-
-        container = build_base_container(
-            title=f"{emoji('tickets', 'report')} Max Roleplay - Report",
-            banner_url=config.REPORT_PANEL_BANNER_URL,
-        )
-        add_separator(container)
-        _add_info_lines(container, [
-            "Επίλεξε το κατάλληλο κουμπί ανάλογα με το ποιον θέλεις να κάνεις report.",
-            "**Report Staff** — για report εναντίον μέλους του Staff Team. Το βλέποι ο Staff Manager & Ownership.",
-            "**Report Manager** — για report εναντίον Manager. Το βλέποι το Ownership.",
-            "**Report Ownership** — για report εναντίον Ownership. Το βλέπει ο Founder.",
-        ])
-        add_separator(container)
-        staff_btn = ui.Button(
-            label=staff_t["label"], style=discord.ButtonStyle.secondary,
-            emoji=staff_t["emoji"] or None, custom_id="ticket_open_report_staff",
-        )
-        manager_btn = ui.Button(
-            label=manager_t["label"], style=discord.ButtonStyle.secondary,
-            emoji=manager_t["emoji"] or None, custom_id="ticket_open_report_manager",
-        )
-        ownership_btn = ui.Button(
-            label=ownership_t["label"], style=discord.ButtonStyle.secondary,
-            emoji=ownership_t["emoji"] or None, custom_id="ticket_open_report_ownership",
-        )
-        add_action_row(container, staff_btn, manager_btn, ownership_btn)
-
-        view = ui.LayoutView(timeout=None)
-        view.add_item(container)
-        await interaction.channel.send(view=view)
-        await interaction.response.send_message("Στάλθηκε.", ephemeral=True)
-
-    @app_commands.command(name="panel-donate", description="Στέλνει το Donate panel")
-    @app_commands.checks.has_any_role(config.OWNERSHIP_ROLE_ID, config.MANAGER_ROLE_ID, config.STAFF_ROLE_ID)
-    async def panel_donate(self, interaction: discord.Interaction):
-        ttypes = _ticket_types()
-        data = ttypes["donate"]
-
-        container = build_base_container(
-            title=f"{data['emoji']} Donate ToS - Max Roleplay",
-            banner_url=config.TICKET_DONATE_BANNER_URL,
-            thumbnail_url=config.TICKET_DONATE_THUMBNAIL_URL,
-        )
-        add_separator(container)
-        _add_info_lines(container, [
-            "Όταν κάνετε Donate υποστηρίζετε την λειτουργία και την ανάπτυξη του server, βοηθώντας μας να τον κρατάμε "
-            "ενεργό και να τον βελτιώνουμε συνεχώς.",
-            "Όλοι οι παίκτες αντιμετωπίζονται το ίδιο ανεξάρτητα από το αν έχουν κάνει Donate ή όχι. Το Donate αποτελεί "
-            "καθαρά προαιρετική δωρεά και δεν είναι απαραίτητο για να παίξετε στον server.",
-            "*Μετά την ολοκλήρωση μιας δωρεάς δεν υπάρχει δυνατότητα επιστροφής χρημάτων ή αλλαγής του πακέτου.*",
-        ])
-        add_separator(container)
-        add_text(container, (
-            "> Όλα τα Donates παραμένουν ενεργά μέχρι το ενδεχόμενο κλείσιμο του server. "
-            "Δεν υπάρχει δυνατότητα επιστροφής μετά από Wipe ή σε περίπτωση που κάποιος τιμωρηθεί με Ban.\n"
-            "> Απαγορεύεται αυστηρά η πώληση, ανταλλαγή ή μεταβίβαση Donate (είτε με πραγματικά χρήματα είτε με ingame χρήματα/αντικείμενα). "
-            "Σε περίπτωση παραβίασης, το Donate αφαιρείται χωρίς προειδοποίηση.\n"
-            "> Για να διατηρήσετε κάποιο Civilian ή Criminal Donate Job πρέπει να είστε ενεργοί στον server. "
-            "Αν ένα job παραμείνει ανενεργό για μεγάλο χρονικό διάστημα, μπορεί να αφαιρεθεί μετά από προειδοποίηση."
-        ))
-        add_separator(container)
-        add_text(container, (
-            "## Payment Methods\n"
-            "Οι διαθέσιμοι τρόποι πληρωμής για Donate στον server είναι:\n"
-            "> PayPal (Euro)\n"
-            "> Prepaid Paysafecard (Ελληνική)"
-        ))
-        add_separator(container)
-        add_text(container, (
-            "## Πώς να κάνετε Donate;\n"
-            "Για να πραγματοποιήσετε Donate μπορείτε να μπείτε στο παρακάτω κανάλι:\n"
-            "https://discord.com/channels/1530923897459970119/1548291842934833202"
-            "Εκεί μπορείτε να περιμένετε κάποιο μέλος <@&1541410687098560512> ή να ανοίξετε ένα Donate Ticket για εξυπηρέτηση. "
-            "Σε περίπτωση πληρωμής μέσω Paysafecard είναι απαραίτητο να στείλετε και φωτογραφία του αποκόμματος. "
-            "Ο χρόνος εξυπηρέτησης συνήθως κυμαίνεται μεταξύ **24 έως 48 ωρών**.\n\n"
-            "```Για πιο γρήγορη εξυπηρέτηση προτείνεται να ανοίξετε ένα ticket ώστε να μιλήσετε απευθείας με κάποιον υπεύθυνο για την διαδικασία Donate.```"
-        ))
-        add_separator(container)
-        btn = ui.Button(
-            label="Donate Ticket", style=discord.ButtonStyle.success,
-            emoji=data["emoji"] or None, custom_id="ticket_open_donate",
-        )
-        add_action_row(container, btn)
-
-        view = ui.LayoutView(timeout=None)
-        view.add_item(container)
-        await interaction.channel.send(view=view)
-        await interaction.response.send_message("Στάλθηκε.", ephemeral=True)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Tickets(bot))
