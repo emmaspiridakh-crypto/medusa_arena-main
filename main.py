@@ -29,7 +29,6 @@ COGS = [
     "cogs.bot_status",
     "cogs.join_ping",
     "cogs.rules_panel",
-    "cogs.compliments",
 ]
 
 
