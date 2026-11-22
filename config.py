@@ -80,7 +80,7 @@ TEMP_VOICE_TYPES = {
         "category_id": 1573875501112762378,           # TODO: category όπου φτιάχνονται τα temp voices (0 = ίδιο category με το hub)
         "notify_channel_id": 1573876283555971074,     # TODO
         "ping_role_id": EVENT_MANAGER_ROLE_ID,
-
+    }
 STAFF_PING_CHANNEL_ID = 1569809101855264855
 
 LOG_TICKETS_CHANNEL_ID =  1569809100416487632
