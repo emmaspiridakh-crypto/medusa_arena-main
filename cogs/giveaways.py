@@ -351,12 +351,12 @@ class Giveaways(commands.Cog):
             )
 
         panel_text = (
-            f"## {emoji('giveaway','giveaway')} GIVEAWAY\n - Max Roleplay\n"
-            f"{emoji('giveaway','prize')} **Έπαθλο:** {gw['prize']}\n"
-            f"{emoji('giveaway','host')} **Host:** {host_str}\n"
-            f"{emoji('giveaway','winners_count')} **Νικητές:** {gw['winner_count']}\n"
-            f"{emoji('giveaway','entries')} **Συμμετοχές:** {entries_count}\n"
-            f"{emoji('giveaway','time')} **{'Έληξε' if is_ended else 'Λήγει'}:** {_fmt_dt(gw['end_time'])}"
+            f"## {emoji('giveaway','giveaway')} 〃 **__Medusa Arena - Giveaway__**\n"
+            f"{emoji('giveaway','prize')} 〃 **Έπαθλο** — {gw['prize']}\n"
+            f"{emoji('giveaway','host')} 〃 **Host** — {host_str}\n"
+            f"{emoji('giveaway','winners_count')} 〃 **Νικητές** — {gw['winner_count']}\n"
+            f"{emoji('giveaway','entries')} 〃 **Συμμετοχές** — {entries_count}\n"
+            f"{emoji('giveaway','time')} 〃 **{'Έληξε' if is_ended else 'Λήγει'}** — {_fmt_dt(gw['end_time'])}"
             f"{role_str}"
             f"{winners_str}"
         )
