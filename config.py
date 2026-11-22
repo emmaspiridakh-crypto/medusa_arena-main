@@ -18,6 +18,7 @@ OWNER_ROLE_ID          =  1569809099393204382
 STAFF_MANAGER_ID         = 1569809099388883003
 EVENT_MANAGER_ID = 1569809099388882998
 GENERAL_MANAGER_ID = 1569809099393204376
+ANTICHEAT_MANAGER_ROLE_ID = 1569809099376304197
 STAFF_TEAM_ROLE_IDS = [STAFF_ROLE_ID, MANAGER_ROLE_ID, OWNERSHIP_ROLE_ID]
 
 TICKET_SUPPORT_CHANNEL_ID = 1569809101855264854
@@ -49,7 +50,38 @@ TICKET_VIEW_ROLE_IDS = {
     "criminal_support": [CRIMINAL_MANAGER_ROLE_ID, OWNERSHIP_ROLE_ID],
 }
 
-STAFF_PING_CHANNEL_ID = 
+TEMP_VOICE_COOLDOWN_SECONDS = 30   # ανά χρήστη, για να μην γίνεται spam με μπαινοβγαίνουν
+
+TEMP_VOICE_TYPES = {
+    "support": {
+        "label": "Support",
+        "hub_channel_id": 1569809101855264853,
+        "category_id": 1573492525891592343,           # TODO: category όπου φτιάχνονται τα temp voices (0 = ίδιο category με το hub)
+        "notify_channel_id": 1569809101855264855,
+        "ping_role_id": STAFF_ROLE_ID,
+    },
+    "donate": {
+        "label": "Donate",
+        "hub_channel_id": 1569809101343555792,        # TODO
+        "category_id": 1573876024352186468,           # TODO: category όπου φτιάχνονται τα temp voices (0 = ίδιο category με το hub)
+        "notify_channel_id": 1569809101343555796,     # TODO
+        "ping_role_id": DONATE_MANAGER_ROLE_ID,
+    },
+    "anticheat": {
+        "label": "Anticheat",
+        "hub_channel_id": 1569809102157258863,        # TODO
+        "category_id": 01573875614107046018,           # TODO: category όπου φτιάχνονται τα temp voices (0 = ίδιο category με το hub)
+        "notify_channel_id": 1573876283555971074,     # TODO
+        "ping_role_id": ANTICHEAT_MANAGER_ROLE_ID,
+    },
+    "event": {
+        "label": "Event",
+        "hub_channel_id": 1569809102157258863,        # TODO
+        "category_id": 1573875501112762378,           # TODO: category όπου φτιάχνονται τα temp voices (0 = ίδιο category με το hub)
+        "notify_channel_id": 1573876283555971074,     # TODO
+        "ping_role_id": EVENT_MANAGER_ROLE_ID,
+
+STAFF_PING_CHANNEL_ID = 1569809101855264855
 
 LOG_TICKETS_CHANNEL_ID =  1569809100416487632
 TICKET_NOTIFIER_CHANNEL_ID = 1573866150968819822
@@ -58,7 +90,7 @@ SUGGESTIONS_CHANNEL_ID = 1569809101687357446
 
 SUPPORT_VOICE_CHANNEL_ID = 1569809101855264856
 
-SUPPORT_VOICE_NOTIFIER_CHANNEL_ID = 
+SUPPORT_VOICE_NOTIFIER_CHANNEL_ID = 1569809101855264855
 SUPPORT_VOICE_PING_ROLE_ID = 1569809099368177791
 
 INVITE_LOG_CHANNEL_ID =  1569809100416487628
