@@ -70,7 +70,7 @@ TEMP_VOICE_TYPES = {
     "anticheat": {
         "label": "Anticheat",
         "hub_channel_id": 1569809102157258863,        # TODO
-        "category_id": 01573875614107046018,           # TODO: category όπου φτιάχνονται τα temp voices (0 = ίδιο category με το hub)
+        "category_id": 1573875614107046018,           # TODO: category όπου φτιάχνονται τα temp voices (0 = ίδιο category με το hub)
         "notify_channel_id": 1573876283555971074,     # TODO
         "ping_role_id": ANTICHEAT_MANAGER_ROLE_ID,
     },
