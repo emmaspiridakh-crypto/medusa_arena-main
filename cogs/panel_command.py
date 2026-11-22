@@ -25,22 +25,14 @@ class PanelCommand(commands.Cog):
             inline=False,
         )
         embed.add_field(
-            name="Timeout Tools (Manager/Ownership)",
-            value=(
-                "`/untimeout <user> [reason]`\n"
-                "`/scan-timeouts`"
-            ),
-            inline=False,
-        )
-        embed.add_field(
-            name="Say (Ownership only)",
+            name="Say (Ownership)",
             value="`!say <text>`\n`!say2 <text>`",
             inline=False,
         )
-        embed.add_field(name="DM All (Founder only)", value="`!dmall <text>`", inline=False)
-        embed.add_field(name="DM User (Founder only)", value="`!dmuser <@user> <text>`", inline=False)
+        embed.add_field(name="DM All (Owner)", value="`!dmall <text>`", inline=False)
+        embed.add_field(name="DM User (Owner)", value="`!dmuser <@user> <text>`", inline=False)
         embed.add_field(
-            name="Slash Panels (Manager/Ownership)",
+            name="Slash Panels (Ownership)",
             value=(
                 "`/panel-support`\n`/panel-civilian-job`\n`/panel-criminal-job`\n"
                 "`/panel-donate`\n`/panel-applications`\n`/panel-staff-activity`"
@@ -48,20 +40,12 @@ class PanelCommand(commands.Cog):
             inline=False,
         )
         embed.add_field(
-            name="Applications Lock (Ownership only)",
-            value=(
-                "`/lockapplication <name>`\n`/unlockapplication <name>`\n"
-                "`/lockallapplications`\n`/unlockallapplications`"
-            ),
-            inline=False,
-        )
-        embed.add_field(
-            name="Warnings (Ownership only)",
+            name="Warnings (Ownership)",
             value="`/warn`\n`/remove-warning <user>`",
             inline=False,
         )
         embed.add_field(
-            name="Giveaway (Ownership only)",
+            name="Giveaway (Ownership)",
             value=(
                 "`/giveaway create`\n`/giveaway delete`\n"
                 "`/giveaway list`"
