@@ -56,28 +56,28 @@ TEMP_VOICE_COOLDOWN_SECONDS = 30   # ανά χρήστη, για να μην γ�
 TEMP_VOICE_TYPES = {
     "support": {
         "label": "Support",
-        "hub_channel_id": 1569809101855264853,
+        "hub_channel_id": 1569809101855264856,
         "category_id": 1573492525891592343,           # TODO: category όπου φτιάχνονται τα temp voices (0 = ίδιο category με το hub)
         "notify_channel_id": 1569809101855264855,
         "ping_role_id": STAFF_ROLE_ID,
     },
     "donate": {
         "label": "Donate",
-        "hub_channel_id": 1569809101343555792,        # TODO
+        "hub_channel_id": 1569809101343555797,        # TODO
         "category_id": 1573876024352186468,           # TODO: category όπου φτιάχνονται τα temp voices (0 = ίδιο category με το hub)
         "notify_channel_id": 1569809101343555796,     # TODO
         "ping_role_id": DONATE_MANAGER_ROLE_ID,
     },
     "anticheat": {
         "label": "Anticheat",
-        "hub_channel_id": 1569809102157258863,        # TODO
+        "hub_channel_id": 1569809102157258865,        # TODO
         "category_id": 1573875614107046018,           # TODO: category όπου φτιάχνονται τα temp voices (0 = ίδιο category με το hub)
         "notify_channel_id": 1573876283555971074,     # TODO
         "ping_role_id": ANTICHEAT_MANAGER_ROLE_ID,
     },
     "event": {
         "label": "Event",
-        "hub_channel_id": 1569809101687357444,        # TODO
+        "hub_channel_id": 1569809102157258864,        # TODO
         "category_id": 1573875501112762378,           # TODO: category όπου φτιάχνονται τα temp voices (0 = ίδιο category με το hub)
         "notify_channel_id": 1573876283555971074,     # TODO
         "ping_role_id": EVENT_MANAGER_ROLE_ID,
