@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import datetime as _dt
 import re
 
@@ -8,13 +9,13 @@ from discord import ui
 from discord.ext import commands
 
 import config
-from emojis import emoji
 from utils import storage
-from utils.components import build_base_container, add_separator, add_action_row, add_text
 
-STORE_NAME = "suggestions"  
+STORE_NAME = "suggestions"
 
 LINK_RE = re.compile(r"(https?://|www\.|discord\.gg/|discord\.com/invite/)", re.IGNORECASE)
+
+E_SUGGESTION = "<:name:1573470860696625283>"
 
 GREEK_DAYS = ["Δευτέρα", "Τρίτη", "Τετάρτη", "Πέμπτη", "Παρασκευή", "Σάββατο", "Κυριακή"]
 GREEK_MONTHS = [
@@ -30,40 +31,148 @@ def _greek_date(dt: _dt.datetime) -> str:
     return f"{day_name}, {dt.day} {GREEK_MONTHS[dt.month]} {dt.year} {hour12:02d}:{dt.minute:02d} {period}"
 
 
+def _sep() -> ui.Separator:
+    return ui.Separator(visible=True, spacing=discord.SeparatorSpacing.small)
+
+
+def _pe(emoji_id: int) -> discord.PartialEmoji:
+    return discord.PartialEmoji(name="name", id=emoji_id)
+
+
+def _parse_dt(value) -> _dt.datetime:
+    if isinstance(value, str):
+        try:
+            return _dt.datetime.fromisoformat(value)
+        except ValueError:
+            pass
+    return discord.utils.utcnow()
+
+
 class Suggestions(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self._refresh_task: asyncio.Task | None = None
 
     def _build_view(
-        self, *, author: discord.Member, text: str, upvotes: int, downvotes: int,
-        msg_id: int, created_at: _dt.datetime,
+        self, *, author_id: int | None, text: str, upvotes: int, downvotes: int,
+        msg_id: int, created_at: _dt.datetime, total: int,
     ) -> ui.LayoutView:
-        thumb = author.display_avatar.url if author else None
-        container = build_base_container(
-            title=f"{emoji('suggestions', 'suggestion')} • New Suggestion",
-            thumbnail_url=thumb,
-        )
-        add_separator(container)
-        bullet = emoji("suggestions", "bullet") or "»"
-        add_text(container, (
-            f"{emoji('suggestions', 'submitted')} Submitted From {author.mention if author else 'Άγνωστος'}\n"
-            f"{bullet} {_greek_date(created_at)}"
-        ))
-        add_separator(container)
-        add_text(container, text)
-        add_separator(container)
-        up_btn = ui.Button(label=str(upvotes), style=discord.ButtonStyle.success,
-                            emoji=emoji("suggestions", "upvote"), custom_id=f"suggestion_up:{msg_id}")
-        down_btn = ui.Button(label=str(downvotes), style=discord.ButtonStyle.danger,
-                              emoji=emoji("suggestions", "downvote"), custom_id=f"suggestion_down:{msg_id}")
-        remove_btn = ui.Button(label="Remove Vote", style=discord.ButtonStyle.secondary,
-                                custom_id=f"suggestion_removevote:{msg_id}")
-        add_action_row(container, up_btn, down_btn, remove_btn)
-
+        author_str = f"<@{author_id}>" if author_id else "Άγνωστος"
         view = ui.LayoutView(timeout=None)
-        view.add_item(container)
+        view.add_item(
+            ui.Container(
+                _sep(),
+                ui.Section(
+                    ui.TextDisplay("# <:name:1573470860696625283> 〃 ***__NEW SUGGESTION__***"),
+                    accessory=ui.Thumbnail(config.SUGGESTIONS_THUMBNAIL_URL),
+                ),
+                _sep(),
+                ui.TextDisplay(
+                    f"> <:name:1573453974063816876>〃 __**Submitted From:**__ {author_str}\n"
+                    f"> <:name:1573362872363385003> 〃 __**Time:**__ {_greek_date(created_at)}"
+                ),
+                _sep(),
+                ui.TextDisplay(f"<a:name:1572715696453058570> {text}"),
+                _sep(),
+                ui.ActionRow(
+                    ui.Button(
+                        style=discord.ButtonStyle.secondary,
+                        label=f"〃 Upvote ({upvotes})",
+                        emoji=_pe(1573739991807430766),
+                        custom_id=f"suggestion_up:{msg_id}",
+                    ),
+                    ui.Button(
+                        style=discord.ButtonStyle.secondary,
+                        label=f"〃 Downvote ({downvotes})",
+                        emoji=_pe(1573739995355807955),
+                        custom_id=f"suggestion_down:{msg_id}",
+                    ),
+                    ui.Button(
+                        style=discord.ButtonStyle.secondary,
+                        label="〃 Remove Vote",
+                        emoji=_pe(1573868533220380863),
+                        custom_id=f"suggestion_removevote:{msg_id}",
+                    ),
+                    ui.Button(
+                        style=discord.ButtonStyle.secondary,
+                        label=f"〃 Total Suggestions ({total})",
+                        emoji=_pe(1573364435311923260),
+                        custom_id="suggestion_total",
+                        disabled=True,
+                    ),
+                ),
+                _sep(),
+                accent_colour=config.SUGGESTIONS_PANEL_COLOUR,
+            )
+        )
         return view
 
+    # ---------- Ενημέρωση του "Total Suggestions (N)" σε όλα τα suggestions ----------
+    def _schedule_refresh(self):
+        if self._refresh_task and not self._refresh_task.done():
+            self._refresh_task.cancel()
+        self._refresh_task = asyncio.create_task(self._refresh_all())
+
+    async def _refresh_all(self):
+        try:
+            await asyncio.sleep(2)  # debounce: αν έρθουν πολλά μαζί, γίνεται ένα refresh
+            channel = self.bot.get_channel(config.SUGGESTIONS_CHANNEL_ID)
+            if channel is None:
+                return
+
+            removed_any = False
+            for msg_id in list(storage.get_store(STORE_NAME).keys()):
+                store = storage.get_store(STORE_NAME)
+                info = store.get(msg_id)
+                if not info:
+                    continue
+                view = self._build_view(
+                    author_id=info.get("author_id"), text=info["text"],
+                    upvotes=len(info["upvotes"]), downvotes=len(info["downvotes"]),
+                    msg_id=int(msg_id), created_at=_parse_dt(info.get("created_at")),
+                    total=len(store),
+                )
+                try:
+                    await channel.get_partial_message(int(msg_id)).edit(view=view)
+                except discord.NotFound:
+                    # το μήνυμα διαγράφηκε (π.χ. όσο το bot ήταν offline) -> βγαίνει από το count
+                    store = storage.get_store(STORE_NAME)
+                    if store.pop(msg_id, None) is not None:
+                        storage.save(STORE_NAME, store)
+                        removed_any = True
+                except discord.HTTPException:
+                    pass
+                await asyncio.sleep(1.2)  # rate limit
+
+            if removed_any:
+                self._schedule_refresh()
+        except asyncio.CancelledError:
+            raise
+
+    # ---------- Διαγραφή suggestion ----------
+    async def _forget_suggestions(self, message_ids: list[int]):
+        store = storage.get_store(STORE_NAME)
+        changed = False
+        for mid in message_ids:
+            if store.pop(str(mid), None) is not None:
+                changed = True
+        if changed:
+            storage.save(STORE_NAME, store)
+            self._schedule_refresh()
+
+    @commands.Cog.listener()
+    async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent):
+        if payload.channel_id != config.SUGGESTIONS_CHANNEL_ID:
+            return
+        await self._forget_suggestions([payload.message_id])
+
+    @commands.Cog.listener()
+    async def on_raw_bulk_message_delete(self, payload: discord.RawBulkMessageDeleteEvent):
+        if payload.channel_id != config.SUGGESTIONS_CHANNEL_ID:
+            return
+        await self._forget_suggestions(list(payload.message_ids))
+
+    # ---------- Νέο suggestion ----------
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot:
@@ -86,7 +195,7 @@ class Suggestions(commands.Cog):
             reason = "tags" if has_mentions and not has_link else "links" if has_link and not has_mentions else "tags ή links"
             try:
                 warning = await message.channel.send(
-                    f"{emoji('suggestions', 'suggestion') or '⚠️'} {author.mention} δεν επιτρέπονται **{reason}** μέσα στα suggestions."
+                    f"{E_SUGGESTION} {author.mention} δεν επιτρέπονται **{reason}** μέσα στα suggestions."
                 )
                 await warning.delete(delay=6)
             except discord.HTTPException:
@@ -100,7 +209,11 @@ class Suggestions(commands.Cog):
         except discord.Forbidden:
             pass
 
-        temp_view = self._build_view(author=author, text=content, upvotes=0, downvotes=0, msg_id=0, created_at=created_at)
+        total_before = len(storage.get_store(STORE_NAME))
+        temp_view = self._build_view(
+            author_id=author.id, text=content, upvotes=0, downvotes=0,
+            msg_id=0, created_at=created_at, total=total_before + 1,
+        )
         sent = await message.channel.send(view=temp_view)
 
         store = storage.get_store(STORE_NAME)
@@ -110,9 +223,16 @@ class Suggestions(commands.Cog):
         }
         storage.save(STORE_NAME, store)
 
-        real_view = self._build_view(author=author, text=content, upvotes=0, downvotes=0, msg_id=sent.id, created_at=created_at)
+        real_view = self._build_view(
+            author_id=author.id, text=content, upvotes=0, downvotes=0,
+            msg_id=sent.id, created_at=created_at, total=len(store),
+        )
         await sent.edit(view=real_view)
 
+        # ενημέρωση του total και στα υπόλοιπα suggestions
+        self._schedule_refresh()
+
+    # ---------- Votes ----------
     async def _handle_vote(self, interaction: discord.Interaction, msg_id: int, upvote: bool | None):
         """upvote=True -> upvote toggle, False -> downvote toggle, None -> remove vote entirely."""
         store = storage.get_store(STORE_NAME)
@@ -144,11 +264,10 @@ class Suggestions(commands.Cog):
         store[str(msg_id)] = info
         storage.save(STORE_NAME, store)
 
-        author = interaction.guild.get_member(info["author_id"])
-        created_at = _dt.datetime.fromisoformat(info["created_at"]) if isinstance(info.get("created_at"), str) else discord.utils.utcnow()
         new_view = self._build_view(
-            author=author or interaction.user, text=info["text"],
-            upvotes=len(ups), downvotes=len(downs), msg_id=msg_id, created_at=created_at,
+            author_id=info.get("author_id"), text=info["text"],
+            upvotes=len(ups), downvotes=len(downs), msg_id=msg_id,
+            created_at=_parse_dt(info.get("created_at")), total=len(store),
         )
         try:
             if interaction.response.is_done():
