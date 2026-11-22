@@ -24,9 +24,9 @@ STAFF_TEAM_ROLE_IDS = [STAFF_ROLE_ID, MANAGER_ROLE_ID, OWNERSHIP_ROLE_ID]
 TICKET_SUPPORT_CHANNEL_ID = 1569809101855264854
 
 # ---------- Tickets ----------
-TICKET_SUPPORT_BANNER_URL = ""   # banner του ticket panel
+TICKET_SUPPORT_BANNER_URL = "https://i.imgur.com/ldREUJB.jpeg"   # banner του ticket panel
 TICKET_PANEL_COLOUR = 0x9500FF
-TICKET_THUMBNAIL_URL = ""   # logo μέσα στο ticket (medusa_logo)
+TICKET_THUMBNAIL_URL = "https://i.imgur.com/JcB78UI.png"   # logo μέσα στο ticket (medusa_logo)
 MAX_OPEN_TICKETS_PER_USER = 1   # πόσα ανοιχτά tickets μπορεί να έχει ο κάθε χρήστης
 
 # Category (Discord) που θα μπαίνουν τα tickets κάθε τύπου.
@@ -96,6 +96,6 @@ SUPPORT_VOICE_PING_ROLE_ID = 1569809099368177791
 INVITE_LOG_CHANNEL_ID =  1569809100416487628
 
 LOG_GIVEAWAY_CHANNEL_ID =  1573866659200897034
-GIVEAWAY_BANNER_URL = "" 
+GIVEAWAY_BANNER_URL = "https://i.imgur.com/ldREUJB.jpeg" 
 
 EMBED_COLOR = int(os.getenv("EMBED_COLOR", "A600FF"), 16)
