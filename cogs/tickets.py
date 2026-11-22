@@ -10,7 +10,6 @@ import config
 from emojis import emoji
 from utils import storage
 from utils.permissions import has_roles
-from utils.components import build_base_container, add_action_row, add_separator
 
 STORE_NAME = "tickets"
 TRANSCRIPT_STORE = "ticket_transcripts"
@@ -120,6 +119,70 @@ def build_panel_view() -> ui.LayoutView:
     return view
 
 
+def build_ticket_view(opener: discord.abc.User, channel_id: int) -> ui.LayoutView:
+    """Το panel που στέλνεται ΜΕΣΑ στο ticket channel."""
+    view = ui.LayoutView(timeout=None)
+    view.add_item(
+        ui.Container(
+            _sep(),
+            ui.TextDisplay(f"## <a:name:1552723150515470406> 〃 __*Welcome {opener.mention}*__!"),
+            _sep(),
+            ui.Section(
+                ui.TextDisplay(
+                    "> <:name:1055592014630105128> Πες μας πως μπορούμε να σε βοηθήσουμε και σύντομα "
+                    "θα επικοινωνήσουμε μαζί σου. Περιέγραψε το πρόβλημα σου όσο καλυτέρα μπορείς."
+                ),
+                accessory=ui.Thumbnail(config.TICKET_THUMBNAIL_URL),
+            ),
+            _sep(),
+            ui.ActionRow(
+                ui.Button(
+                    style=discord.ButtonStyle.secondary,
+                    label="〃 Close",
+                    emoji=discord.PartialEmoji(name="name", id=1573455398344855643),
+                    custom_id=f"ticket_close:{channel_id}",
+                ),
+                ui.Button(
+                    style=discord.ButtonStyle.secondary,
+                    label="〃 Ping User",
+                    emoji=discord.PartialEmoji(name="name", id=1573455807058542682),
+                    custom_id=f"ticket_ping:{channel_id}",
+                ),
+            ),
+            _sep(),
+            accent_colour=config.TICKET_PANEL_COLOUR,
+        )
+    )
+    return view
+
+
+def build_opened_view(channel_url: str) -> ui.LayoutView:
+    """Το (ephemeral) μήνυμα που βλέπει ο χρήστης όταν ανοίξει ticket."""
+    view = ui.LayoutView(timeout=None)
+    view.add_item(
+        ui.Container(
+            _sep(),
+            ui.TextDisplay("# <:name:1572728296993726585> 〃__***Your Tickent Has Opened.***__ "),
+            _sep(),
+            ui.TextDisplay("Πάτα το κουμπί παρακάτω για να πας στο ticket σου."),
+            _sep(),
+            ui.ActionRow(
+                ui.Button(
+                    style=discord.ButtonStyle.link,
+                    label="〃 My ticket 〃",
+                    emoji=discord.PartialEmoji(name="name", id=1572728296993726585),
+                    url=channel_url,
+                ),
+            ),
+            _sep(),
+            ui.TextDisplay("> -  <a:name:1572715696453058570> Παρακαλούμε μην κάνεις spam."),
+            _sep(),
+            accent_colour=0xA600FF,
+        )
+    )
+    return view
+
+
 def _safe_name(text: str) -> str:
     text = text.lower().strip().replace(" ", "-")
     return "".join(c for c in text if c.isalnum() or c == "-")[:90]
@@ -150,7 +213,7 @@ class Tickets(commands.Cog):
         opener = interaction.user
 
         if opener.id in self._opening:
-            await reply("Το ticket σου ανοίγει ήδη, περίμενε λίγο.")
+            await reply("Το ticket σου ανοίγει, περίμενε λίγο.")
             return
 
         self._opening.add(opener.id)
@@ -211,25 +274,7 @@ class Tickets(commands.Cog):
         }
         storage.save(STORE_NAME, store)
 
-        container = build_base_container(
-            title=f"{data['emoji']} {data['label']} Ticket",
-            description=f"Άνοιξε από: {opener.mention}\n Παρακαλόυμε περιμένετε λίγο και η ομάδα μας θα σας απαντήσει σύντομα.",
-            color=discord.Colour.gold(),
-        )
-        add_separator(container)
-        close_btn = ui.Button(
-            label="Close Ticket", style=discord.ButtonStyle.secondary,
-            emoji=emoji("tickets", "close"), custom_id=f"ticket_close:{new_channel.id}",
-        )
-        ping_btn = ui.Button(
-            label="Ping User", style=discord.ButtonStyle.secondary,
-            emoji=emoji("tickets", "ping"), custom_id=f"ticket_ping:{new_channel.id}",
-        )
-        add_action_row(container, close_btn, ping_btn)
-
-        view = ui.LayoutView(timeout=None)
-        view.add_item(container)
-        await new_channel.send(view=view)
+        await new_channel.send(view=build_ticket_view(opener, new_channel.id))
 
         log_channel = guild.get_channel(config.LOG_TICKETS_CHANNEL_ID)
         if log_channel:
@@ -243,7 +288,7 @@ class Tickets(commands.Cog):
             embed.add_field(name="Άνοιξε από", value=f"{opener.mention} (`{opener.id}`)", inline=False)
             await log_channel.send(embed=embed)
 
-        await reply(f"Το ticket σου: {new_channel.mention}")
+        await interaction.followup.send(view=build_opened_view(new_channel.jump_url), ephemeral=True)
 
     async def _build_transcript_text(self, channel: discord.TextChannel) -> str:
         lines = []
@@ -268,7 +313,7 @@ class Tickets(commands.Cog):
         chunks = chunks[:max_fields]
 
         for i, chunk in enumerate(chunks, start=1):
-            name = "📜 Transcript" if len(chunks) == 1 else f"📜 Transcript ({i}/{len(chunks)})"
+            name = "Transcript" if len(chunks) == 1 else f"Transcript ({i}/{len(chunks)})"
             embed.add_field(name=name, value=f"```{chunk}```" if chunk.strip() else "```(κενό)```", inline=False)
 
         if truncated:
@@ -316,7 +361,7 @@ class Tickets(commands.Cog):
 
             transcript_btn = ui.Button(
                 label="View Transcript", style=discord.ButtonStyle.secondary,
-                emoji="📄", custom_id=f"ticket_transcript:{channel_id}",
+                custom_id=f"ticket_transcript:{channel_id}",
             )
             view = ui.View(timeout=None)
             view.add_item(transcript_btn)
@@ -333,15 +378,15 @@ class Tickets(commands.Cog):
         store = storage.get_store(STORE_NAME)
         info = store.get(str(channel_id))
         if not info:
-            await interaction.response.send_message("Αυτό το ticket δεν υπάρχει πια.", ephemeral=True)
+            await interaction.response.send_message("Tο ticket δεν υπάρχει πια.", ephemeral=True)
             return
 
         if not has_roles(interaction.user, config.STAFF_TEAM_ROLE_IDS):
-            await interaction.response.send_message("Μόνο το staff team μπορεί να κάνει ping τον χρήστη.", ephemeral=True)
+            await interaction.response.send_message("Μόνο το staff team μπορεί να κάνει ping.", ephemeral=True)
             return
 
         if interaction.user.id == info["opener_id"]:
-            await interaction.response.send_message("Δεν μπορείς να κάνεις ping τον εαυτό σου.", ephemeral=True)
+            await interaction.response.send_message("Δεν μπορείς να κάνεις ping τον εαυτό σου....", ephemeral=True)
             return
 
         opener = interaction.guild.get_member(info["opener_id"])
@@ -399,7 +444,7 @@ class Tickets(commands.Cog):
             channel_id = int(custom_id.split(":")[1])
             await self.handle_view_transcript(interaction, channel_id)
 
-    @app_commands.command(name="panel-support", description="Στέλνει το Ticket Center panel")
+    @app_commands.command(name="panel-support", description="Στέλνει το ticket panel")
     @app_commands.checks.has_any_role(config.OWNERSHIP_ROLE_ID, config.MANAGER_ROLE_ID, config.STAFF_ROLE_ID)
     async def panel_support(self, interaction: discord.Interaction):
         await interaction.channel.send(view=build_panel_view())
