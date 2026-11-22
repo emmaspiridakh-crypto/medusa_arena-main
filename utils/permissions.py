@@ -31,7 +31,7 @@ def is_ownership_only():
 
 def is_founder_only():
     async def predicate(ctx: commands.Context) -> bool:
-        return member_has_any_role(ctx.author, [config.FOUNDER_ROLE_ID])
+        return member_has_any_role(ctx.author, [config.OWNER_ROLE_ID])
     return commands.check(predicate)
 
 
