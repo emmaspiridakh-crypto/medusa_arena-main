@@ -29,11 +29,6 @@ EMOJIS = {
         "left": "<:inv_left:0>",
         "leaderboard": "<:inv_board:0>",
     },
-    "compliments": {
-        "compliment": "<:compliment:0>",
-        "submitted": "<:submitted:0>",
-        "bullet": "<a:bullet:0>",
-    },
 }
 
 
