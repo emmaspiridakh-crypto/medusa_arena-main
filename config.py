@@ -77,7 +77,7 @@ TEMP_VOICE_TYPES = {
     },
     "event": {
         "label": "Event",
-        "hub_channel_id": 1569809102157258863,        # TODO
+        "hub_channel_id": 1569809101687357444,        # TODO
         "category_id": 1573875501112762378,           # TODO: category όπου φτιάχνονται τα temp voices (0 = ίδιο category με το hub)
         "notify_channel_id": 1573876283555971074,     # TODO
         "ping_role_id": EVENT_MANAGER_ROLE_ID,
