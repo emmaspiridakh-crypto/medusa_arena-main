@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime as _dt
+import logging
 import re
 
 import discord
@@ -10,6 +11,8 @@ from discord.ext import commands
 
 import config
 from utils import storage
+
+log = logging.getLogger("suggestions")
 
 STORE_NAME = "suggestions"
 
@@ -64,7 +67,7 @@ class Suggestions(commands.Cog):
                 _sep(),
                 ui.Section(
                     ui.TextDisplay("# <:name:1573470860696625283> 〃 ***__NEW SUGGESTION__***"),
-                    accessory=ui.Thumbnail(config.SUGGESTIONS_THUMBNAIL_URL),
+                    accessory=ui.Thumbnail(getattr(config, "SUGGESTIONS_THUMBNAIL_URL", "https://i.imgur.com/JcB78UI.png")),
                 ),
                 _sep(),
                 ui.TextDisplay(
@@ -102,7 +105,7 @@ class Suggestions(commands.Cog):
                     ),
                 ),
                 _sep(),
-                accent_colour=config.SUGGESTIONS_PANEL_COLOUR,
+                accent_colour=getattr(config, "SUGGESTIONS_PANEL_COLOUR", 0xA600FF),
             )
         )
         return view
@@ -202,32 +205,44 @@ class Suggestions(commands.Cog):
                 pass
             return
 
+        if not content:   # μόνο εικόνα/attachment, χωρίς κείμενο -> δεν γίνεται suggestion
+            return
+
         created_at = discord.utils.utcnow()
 
         try:
+            total_before = len(storage.get_store(STORE_NAME))
+            temp_view = self._build_view(
+                author_id=author.id, text=content, upvotes=0, downvotes=0,
+                msg_id=0, created_at=created_at, total=total_before + 1,
+            )
+            sent = await message.channel.send(view=temp_view)
+        except Exception:
+            # αν αποτύχει η δημιουργία του panel, ΔΕΝ σβήνουμε το μήνυμα του χρήστη
+            log.exception("[suggestions] Αποτυχία δημιουργίας suggestion panel")
+            return
+
+        try:
             await message.delete()
-        except discord.Forbidden:
+        except discord.HTTPException:
             pass
 
-        total_before = len(storage.get_store(STORE_NAME))
-        temp_view = self._build_view(
-            author_id=author.id, text=content, upvotes=0, downvotes=0,
-            msg_id=0, created_at=created_at, total=total_before + 1,
-        )
-        sent = await message.channel.send(view=temp_view)
+        try:
+            store = storage.get_store(STORE_NAME)
+            store[str(sent.id)] = {
+                "author_id": author.id, "text": content, "upvotes": [], "downvotes": [],
+                "created_at": created_at.isoformat(),
+            }
+            storage.save(STORE_NAME, store)
 
-        store = storage.get_store(STORE_NAME)
-        store[str(sent.id)] = {
-            "author_id": author.id, "text": content, "upvotes": [], "downvotes": [],
-            "created_at": created_at.isoformat(),
-        }
-        storage.save(STORE_NAME, store)
-
-        real_view = self._build_view(
-            author_id=author.id, text=content, upvotes=0, downvotes=0,
-            msg_id=sent.id, created_at=created_at, total=len(store),
-        )
-        await sent.edit(view=real_view)
+            real_view = self._build_view(
+                author_id=author.id, text=content, upvotes=0, downvotes=0,
+                msg_id=sent.id, created_at=created_at, total=len(store),
+            )
+            await sent.edit(view=real_view)
+        except Exception:
+            log.exception("[suggestions] Αποτυχία αποθήκευσης/ενημέρωσης suggestion")
+            return
 
         # ενημέρωση του total και στα υπόλοιπα suggestions
         self._schedule_refresh()
