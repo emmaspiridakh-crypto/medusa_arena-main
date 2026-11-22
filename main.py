@@ -22,17 +22,13 @@ bot = commands.Bot(command_prefix=config.PREFIX, intents=intents, help_command=N
 COGS = [
     "cogs.tickets",
     "cogs.suggestions",
-    "cogs.timeout_tools",
     "cogs.support_voice",
-    "cogs.applications",
     "cogs.panel_command",
     "cogs.invite_tracking",
     "cogs.giveaways",
     "cogs.bot_status",
     "cogs.join_ping",
-    "cogs.whitelist",
     "cogs.rules_panel",
-    "cogs.reviews",
     "cogs.compliments",
 ]
 
